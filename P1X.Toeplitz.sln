@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "P1X.Toeplitz", "P1X.Toeplitz\P1X.Toeplitz.csproj", "{57231C18-E07E-44F6-86BA-785A9DAD6D82}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{57231C18-E07E-44F6-86BA-785A9DAD6D82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57231C18-E07E-44F6-86BA-785A9DAD6D82}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57231C18-E07E-44F6-86BA-785A9DAD6D82}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57231C18-E07E-44F6-86BA-785A9DAD6D82}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
