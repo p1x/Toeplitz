@@ -23,51 +23,54 @@ namespace P1X.Toeplitz {
         /// https://doi.org/10.1145/321812.321822
         /// </summary>
         private static void SolveCore(NormalizedToeplitzMatrix L, float[] d, float[] s) {
-            var sPrev = new float[] { d[0] };
-            var ePrev = new float[] { -L[-1] }; // already reversed
-            var gPrev = new float[] { -L[1] };
-            var lambdaPrev = 1 - L[-1] * L[1];
+            var ePrev = new float[L.Size - 1]; // reversed vector
+            var gPrev = new float[L.Size - 1];
+            var eNext = new float[L.Size - 1];
+            var gNext = new float[L.Size - 1];
+            s[0] = d[0];
+            ePrev[0] = -L[-1];
+            gPrev[0] = -L[1];
+            var lambda = 1 - L[-1] * L[1];
 
             for (var i = 1; i < L.Size; i++) {
                 var theta = d[i];
                 for (var j = 0; j < i; j++) 
-                    theta -= sPrev[j] * L[i - j];
+                    theta -= s[j] * L[i - j];
 
-                var sNext = new float[i + 1];
+                var thetaOverLambda = theta / lambda;
                 for (var j = 0; j < i; j++) 
-                    sNext[j] = sPrev[j] + theta / lambdaPrev * ePrev[j];
-                sNext[i] = theta / lambdaPrev;
+                    s[j] = s[j] + thetaOverLambda * ePrev[j];
+                s[i] = thetaOverLambda;
                 
                 if (i != L.Size - 1) {
                     var eta = -L[-(i + 1)];
-                    for (var j = 0; j < i; j++)
-                        eta -= L[-(j + 1)] * ePrev[j];
-
                     var gamma = -L[i + 1];
-                    for (var j = 0; j < i; j++)
+
+                    for (var j = 0; j < i; j++) {
+                        eta -= L[-(j + 1)] * ePrev[j];
                         gamma -= gPrev[j] * L[i - j];
+                    }
 
-                    var eNext = new float[i + 1];
-                    eNext[0] = eta / lambdaPrev;
-                    for (var j = 0; j < i; j++)
-                        eNext[j + 1] = ePrev[j] + eta / lambdaPrev * gPrev[j];
-
-                    var gNext = new float[i + 1];
-                    for (var j = 0; j < i; j++)
-                        gNext[j] = gPrev[j] + gamma / lambdaPrev * ePrev[j];
-                    gNext[i] = gamma / lambdaPrev;
+                    var etaOverLambda = eta / lambda;
+                    var gammaOverLambda = gamma / lambda;
+                    eNext[0] = etaOverLambda;
+                    for (var j = 0; j < i; j++) {
+                        eNext[j + 1] = ePrev[j] + etaOverLambda * gPrev[j];
+                        gNext[j] = gPrev[j] + gammaOverLambda * ePrev[j];
+                    }
+                    gNext[i] = gammaOverLambda;
+                    Swap(ref ePrev, ref eNext);
+                    Swap(ref gPrev, ref gNext);
                     
-                    var lambdaNext = lambdaPrev - eta * gamma / lambdaPrev;
-                    
-                    ePrev = eNext;
-                    gPrev = gNext;
-                    lambdaPrev = lambdaNext;
+                    lambda = lambda - eta * gammaOverLambda;
                 } 
-                sPrev = sNext;
             }
+        }
 
-            for (var i = 0; i < s.Length; i++) 
-                s[i] = sPrev[i];
+        private static void Swap<T>(ref T a, ref T b) {
+            var t = a;
+            a = b;
+            b = t;
         }
     }
 }
