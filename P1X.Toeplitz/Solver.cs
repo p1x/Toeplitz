@@ -23,56 +23,65 @@ namespace P1X.Toeplitz {
         /// https://doi.org/10.1145/321812.321822
         /// </summary>
         private static void SolveCore(NormalizedToeplitzMatrix L, float[] d, float[] s) {
-            var ePrev = new float[L.Size - 1]; // reversed vector
-            var gPrev = new float[L.Size - 1];
-            var eNext = new float[L.Size - 1];
-            var gNext = new float[L.Size - 1];
+            var e = new float[L.Size - 1]; // reversed vector
+            var g = new float[L.Size - 1];
+            
             s[0] = d[0];
-            ePrev[0] = -L[-1];
-            gPrev[0] = -L[1];
-            var lambda = 1 - L[-1] * L[1];
-
-            for (var i = 1; i < L.Size; i++) {
-                var theta = d[i];
-                for (var j = 0; j < i; j++) 
-                    theta -= s[j] * L[i - j];
-
-                var thetaOverLambda = theta / lambda;
-                for (var j = 0; j < i; j++) 
-                    s[j] = s[j] + thetaOverLambda * ePrev[j];
-                s[i] = thetaOverLambda;
-
-                if (i == L.Size - 1)
-                    break;
-                
-                var eta = -L[-(i + 1)];
-                var gamma = -L[i + 1];
-
-                for (var j = 0; j < i; j++) {
-                    eta -= L[-(j + 1)] * ePrev[j];
-                    gamma -= gPrev[j] * L[i - j];
-                }
-
-                var etaOverLambda = eta / lambda;
-                var gammaOverLambda = gamma / lambda;
-                eNext[0] = etaOverLambda;
-                for (var j = 0; j < i; j++) {
-                    eNext[j + 1] = ePrev[j] + etaOverLambda * gPrev[j];
-                    gNext[j] = gPrev[j] + gammaOverLambda * ePrev[j];
-                }
-                gNext[i] = gammaOverLambda;
-                
-                Swap(ref ePrev, ref eNext);
-                Swap(ref gPrev, ref gNext);
-
-                lambda -= eta * gammaOverLambda;
+            var lambda = 1f;
+            
+            for (var i = 0; i < L.Size - 1; i++) {
+                CalculateHelpers(L, i, e, g, ref lambda);
+                CalculateIntermediateResult(L, i + 1, d, e, lambda, s);
             }
         }
 
-        private static void Swap(ref float[] a, ref float[] b) {
-            var t = a;
-            a = b;
-            b = t;
+        private static void CalculateHelpers(NormalizedToeplitzMatrix L, int i, float[] e, float[] g, ref float lambda) {
+            var (eta, gamma) = CalculateHelperValues(L, i, e, g);
+
+            var etaOverLambda = eta / lambda;
+            var gammaOverLambda = gamma / lambda;
+
+            CalculateHelperVectors(i, e, g, etaOverLambda, gammaOverLambda);
+
+            lambda -= eta * gammaOverLambda;
+        }
+
+        private static void CalculateIntermediateResult(NormalizedToeplitzMatrix L, int i, float[] d, float[] e, float lambda, float[] s) {
+            var theta = d[i];
+            for (var j = 0; j < i; j++)
+                theta -= s[j] * L[i - j];
+
+            var thetaOverLambda = theta / lambda;
+            for (var j = 0; j < i; j++)
+                s[j] = s[j] + thetaOverLambda * e[j];
+            s[i] = thetaOverLambda;
+        }
+
+        private static (float eta, float gamma) CalculateHelperValues(NormalizedToeplitzMatrix L, int i, float[] e, float[] g) {
+            var eta = -L[-(i + 1)];
+            var gamma = -L[i + 1];
+
+            for (var j = 0; j < i; j++) {
+                eta -= L[-(j + 1)] * e[j];
+                gamma -= g[j] * L[i - j];
+            }
+
+            return (eta, gamma);
+        }
+
+        private static void CalculateHelperVectors(int i, float[] e, float[] g, float etaOverLambda, float gammaOverLambda) {
+            var ejPrev = e[0]; // e[j] from prev iteration
+            e[0] = etaOverLambda;
+            for (var j = 0; j < i; j++) {
+                var gjPrev = g[j];
+
+                var ej1 = ejPrev + etaOverLambda * gjPrev;
+                g[j] = gjPrev + gammaOverLambda * ejPrev;
+
+                ejPrev = e[j + 1];
+                e[j + 1] = ej1;
+            }
+            g[i] = gammaOverLambda;
         }
     }
 }
