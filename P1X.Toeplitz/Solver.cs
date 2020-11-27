@@ -41,33 +41,35 @@ namespace P1X.Toeplitz {
                 for (var j = 0; j < i; j++) 
                     s[j] = s[j] + thetaOverLambda * ePrev[j];
                 s[i] = thetaOverLambda;
+
+                if (i == L.Size - 1)
+                    break;
                 
-                if (i != L.Size - 1) {
-                    var eta = -L[-(i + 1)];
-                    var gamma = -L[i + 1];
+                var eta = -L[-(i + 1)];
+                var gamma = -L[i + 1];
 
-                    for (var j = 0; j < i; j++) {
-                        eta -= L[-(j + 1)] * ePrev[j];
-                        gamma -= gPrev[j] * L[i - j];
-                    }
+                for (var j = 0; j < i; j++) {
+                    eta -= L[-(j + 1)] * ePrev[j];
+                    gamma -= gPrev[j] * L[i - j];
+                }
 
-                    var etaOverLambda = eta / lambda;
-                    var gammaOverLambda = gamma / lambda;
-                    eNext[0] = etaOverLambda;
-                    for (var j = 0; j < i; j++) {
-                        eNext[j + 1] = ePrev[j] + etaOverLambda * gPrev[j];
-                        gNext[j] = gPrev[j] + gammaOverLambda * ePrev[j];
-                    }
-                    gNext[i] = gammaOverLambda;
-                    Swap(ref ePrev, ref eNext);
-                    Swap(ref gPrev, ref gNext);
-                    
-                    lambda = lambda - eta * gammaOverLambda;
-                } 
+                var etaOverLambda = eta / lambda;
+                var gammaOverLambda = gamma / lambda;
+                eNext[0] = etaOverLambda;
+                for (var j = 0; j < i; j++) {
+                    eNext[j + 1] = ePrev[j] + etaOverLambda * gPrev[j];
+                    gNext[j] = gPrev[j] + gammaOverLambda * ePrev[j];
+                }
+                gNext[i] = gammaOverLambda;
+                
+                Swap(ref ePrev, ref eNext);
+                Swap(ref gPrev, ref gNext);
+
+                lambda -= eta * gammaOverLambda;
             }
         }
 
-        private static void Swap<T>(ref T a, ref T b) {
+        private static void Swap(ref float[] a, ref float[] b) {
             var t = a;
             a = b;
             b = t;
