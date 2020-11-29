@@ -1,8 +1,12 @@
 ﻿using System;
 
 namespace P1X.Toeplitz {
-    public static class Solver {
-        public static void Solve(NormalizedToeplitzMatrix matrix, float[] rightVector, float[] resultVector) {
+    /// <summary>
+    /// Main implementation of Zohar-Trench algorithm.
+    /// https://doi.org/10.1145/321812.321822
+    /// </summary>
+    public class Solver : ISolver {
+        public void Solve(NormalizedToeplitzMatrix matrix, float[] rightVector, float[] resultVector) {
             if (!matrix.IsInitialized)
                 throw new ArgumentException("The matrix should be initialized (non-default).", nameof(matrix));
             if (rightVector == null)
@@ -18,11 +22,7 @@ namespace P1X.Toeplitz {
             SolveCore(matrix, rightVector, resultVector);
         }
         
-        /// <summary>
-        /// Direct implementation of Zohar-Trench algorithm.
-        /// https://doi.org/10.1145/321812.321822
-        /// </summary>
-        private static void SolveCore(NormalizedToeplitzMatrix L, float[] d, float[] s) {
+        private void SolveCore(NormalizedToeplitzMatrix L, float[] d, float[] s) {
             var e = new float[L.Size - 1]; // reversed vector
             var g = new float[L.Size - 1];
             

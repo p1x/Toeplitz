@@ -2,19 +2,29 @@
 using Xunit;
 
 namespace P1X.Toeplitz.Tests {
-    public class SolverTests {
+    public class SolverTests : SolverTestsBase {
+        protected override ISolver GetSolver() => new Solver();
+    }
+
+    public class NaiveSolverTests : SolverTestsBase {
+        protected override ISolver GetSolver() => new NaiveSolver();
+    }
+    
+    public abstract class SolverTestsBase {
+        protected abstract ISolver GetSolver();
+        
         [Fact]
         public void SolveDefaultParameters_ThrowException() {
-            Assert.Throws<ArgumentNullException>(() => Solver.Solve(NormalizedToeplitzMatrix.Create(2), null, new float[2]));
-            Assert.Throws<ArgumentNullException>(() => Solver.Solve(NormalizedToeplitzMatrix.Create(2), new float[2], null));
-            Assert.Throws<ArgumentException>(() => Solver.Solve(default, new float[2], new float[2]));
+            Assert.Throws<ArgumentNullException>(() => GetSolver().Solve(NormalizedToeplitzMatrix.Create(2), null, new float[2]));
+            Assert.Throws<ArgumentNullException>(() => GetSolver().Solve(NormalizedToeplitzMatrix.Create(2), new float[2], null));
+            Assert.Throws<ArgumentException>(() => GetSolver().Solve(default, new float[2], new float[2]));
         }
 
         [Fact]
         public void SolveDifferentVectorAndMatrixSizes_ThrowException() {
-            Assert.Throws<ArgumentException>(() => Solver.Solve(NormalizedToeplitzMatrix.Create(3), new float[2], new float[2]));
-            Assert.Throws<ArgumentException>(() => Solver.Solve(NormalizedToeplitzMatrix.Create(2), new float[3], new float[2]));
-            Assert.Throws<ArgumentException>(() => Solver.Solve(NormalizedToeplitzMatrix.Create(2), new float[2], new float[3]));
+            Assert.Throws<ArgumentException>(() => GetSolver().Solve(NormalizedToeplitzMatrix.Create(3), new float[2], new float[2]));
+            Assert.Throws<ArgumentException>(() => GetSolver().Solve(NormalizedToeplitzMatrix.Create(2), new float[3], new float[2]));
+            Assert.Throws<ArgumentException>(() => GetSolver().Solve(NormalizedToeplitzMatrix.Create(2), new float[2], new float[3]));
         }
 
         [Theory]
@@ -31,7 +41,7 @@ namespace P1X.Toeplitz.Tests {
             var matrix = NormalizedToeplitzMatrix.Create(matrixValues);
             var resultVector = new float[matrix.Size];
             
-            Solver.Solve(matrix, rightVector, resultVector);
+            GetSolver().Solve(matrix, rightVector, resultVector);
             
             Assert.Equal(expectedResult, resultVector, new RoundingSingleEqualityComparer(6));
         }
