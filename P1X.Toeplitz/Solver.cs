@@ -9,6 +9,16 @@ namespace P1X.Toeplitz {
     /// </summary>
     [SuppressMessage("ReSharper", "SuggestBaseTypeForParameter")]
     public class Solver : ISolver<NormalizedToeplitzMatrix, Vector, Vector> {
+        private float[] _e; // reversed vector
+        private float[] _g;
+        private float _lambda = 1f;
+        private int _index = 0;
+        
+        public Solver(int maxMatrixSize) {
+            _e = new float[maxMatrixSize - 1]; 
+            _g = new float[maxMatrixSize - 1];
+        }
+        
         public static void Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, Vector resultVector) {
             if (!matrix.IsInitialized)
                 throw new ArgumentException("The matrix should be initialized (non-default).", nameof(matrix));
@@ -32,6 +42,43 @@ namespace P1X.Toeplitz {
             }
         }
         
+        public void Iterate(in NormalizedToeplitzMatrix matrix, in Vector rightVector, in Vector resultVector) {
+            if (!matrix.IsInitialized)
+                throw new ArgumentException("The matrix should be initialized (non-default).", nameof(matrix));
+            if (rightVector.Equals(default(Vector)))
+                throw new ArgumentNullException(nameof(rightVector));
+            if (resultVector.Equals(default(Vector)))
+                throw new ArgumentNullException(nameof(resultVector));
+            
+            IterateUnchecked(matrix.GetUnchecked(), rightVector, resultVector);
+        }
+
+        private void IterateUnchecked(NormalizedToeplitzMatrixUnchecked matrix, Vector rightVector, Vector resultVector) {
+            ResizeArrays();
+            
+            if (_index == 0)
+                CalculateIntermediateResult(matrix, 0, rightVector, resultVector, _e, _lambda);
+            
+            CalculateInversion(matrix, _index, _e, _g, ref _lambda);
+            CalculateIntermediateResult(matrix, _index + 1, rightVector, resultVector, _e, _lambda);
+            
+            _index++;
+        }
+
+        private void ResizeArrays() {
+            if (_index <= _e.Length - 1)
+                return;
+            
+            var newE = new float[_e.Length * 2];
+            var newG = new float[_g.Length * 2];
+                
+            _e.CopyTo(newE, 0);
+            _g.CopyTo(newG, 0);
+
+            _e = newE;
+            _g = newG;
+        }
+
         private static void CalculateIntermediateResult(NormalizedToeplitzMatrixUnchecked matrix, int i, Vector d, Vector s, float[] e, float lambda) {
             var theta = d[i];
             for (var j = 0; j < i; j++)
