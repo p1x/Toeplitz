@@ -5,7 +5,7 @@ namespace P1X.Toeplitz {
     /// Direct "naive" implementation of Zohar-Trench algorithm.
     /// https://doi.org/10.1145/321812.321822
     /// </summary>
-    public class NaiveSolver : ISolver {
+    public class NaiveSolver : ISolver<NormalizedToeplitzMatrix> {
         public void Solve(NormalizedToeplitzMatrix matrix, float[] rightVector, float[] resultVector) {
             if (!matrix.IsInitialized)
                 throw new ArgumentException("The matrix should be initialized (non-default).", nameof(matrix));

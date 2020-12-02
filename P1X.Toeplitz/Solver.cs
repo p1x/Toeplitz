@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace P1X.Toeplitz {
     /// <summary>
@@ -9,7 +8,7 @@ namespace P1X.Toeplitz {
     /// https://doi.org/10.1145/321812.321822
     /// </summary>
     [SuppressMessage("ReSharper", "SuggestBaseTypeForParameter")]
-    public class Solver : ISolver {
+    public class Solver : ISolver<NormalizedToeplitzMatrix> {
         public void Solve(NormalizedToeplitzMatrix matrix, float[] rightVector, float[] resultVector) {
             if (!matrix.IsInitialized)
                 throw new ArgumentException("The matrix should be initialized (non-default).", nameof(matrix));
@@ -23,10 +22,10 @@ namespace P1X.Toeplitz {
             if (resultVector.Length != matrix.Size)
                 throw new ArgumentException("Vectors and the matrix should be the same size.", nameof(resultVector));
             
-            SolveCore(matrix, rightVector, resultVector);
+            SolveUnchecked(matrix.GetUnchecked(), rightVector, resultVector);
         }
         
-        private void SolveCore(NormalizedToeplitzMatrix matrix, float[] d, float[] s) {
+        private void SolveUnchecked(NormalizedToeplitzMatrixUnchecked matrix, float[] d, float[] s) {
             var e = new float[matrix.Size - 1]; // reversed vector
             var g = new float[matrix.Size - 1];
             
@@ -39,7 +38,7 @@ namespace P1X.Toeplitz {
             }
         }
 
-        private static void CalculateIntermediateResult(NormalizedToeplitzMatrix matrix, int i, float[] d, float[] e, float lambda, float[] s) {
+        private static void CalculateIntermediateResult(NormalizedToeplitzMatrixUnchecked matrix, int i, float[] d, float[] e, float lambda, float[] s) {
             var theta = d[i];
             for (var j = 0; j < i; j++)
                 theta -= s[j] * matrix[i - j];
@@ -50,7 +49,7 @@ namespace P1X.Toeplitz {
             s[i] = thetaOverLambda;
         }
 
-        private static void CalculateInversion(NormalizedToeplitzMatrix matrix, int i, float[] e, float[] g, ref float lambda) {
+        private static void CalculateInversion(NormalizedToeplitzMatrixUnchecked matrix, int i, float[] e, float[] g, ref float lambda) {
             var eta = CalculateEta(matrix, i, e);
             var gamma = CalculateGamma(matrix, i, g);
 
@@ -62,14 +61,14 @@ namespace P1X.Toeplitz {
             lambda -= eta * gammaOverLambda;
         }
 
-        private static float CalculateEta(NormalizedToeplitzMatrix matrix, int i, float[] e) {
+        private static float CalculateEta(NormalizedToeplitzMatrixUnchecked matrix, int i, float[] e) {
             var eta = -matrix[-(i + 1)];
             for (var j = 0; j < i; j++)
                 eta -= matrix[-(j + 1)] * e[j];
             return eta;
         }
 
-        private static float CalculateGamma(NormalizedToeplitzMatrix L, int i, float[] g) {
+        private static float CalculateGamma(NormalizedToeplitzMatrixUnchecked L, int i, float[] g) {
             var gamma = -L[i + 1];
             for (var j = 0; j < i; j++)
                 gamma -= g[j] * L[i - j];
