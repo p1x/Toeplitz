@@ -6,13 +6,15 @@ using MathNet.Numerics.LinearAlgebra.Single;
 namespace P1X.Toeplitz.BenchmarkSuite {
     [MemoryDiagnoser]
     public class Benchmarks {
-        [Params(8, 32, 1024)]
+        [Params(8, 32, 128, 512)]
         public int N;
         
         private NormalizedToeplitzMatrix _matrix;
 
-        private float[] _rightVector;
-        private float[] _result;
+        private float[] _rightValues;
+        private float[] _resultValues;
+        private Vector _rightVector;
+        private Vector _resultVector;
         private DenseMatrix _mnMatrix;
         private DenseVector _mnRightVector;
         private DenseVector _mnResult;
@@ -30,27 +32,29 @@ namespace P1X.Toeplitz.BenchmarkSuite {
             for (var j = 0; j < N; j++)
                 _mnMatrix[i, j] = _matrix[Math.Abs(i - j)];
 
-            _rightVector = new float[N];
+            _rightValues = new float[N];
             for (var i = 0; i < N; i++) 
-                _rightVector[i] = R(0.5f - N / 2f + i);
+                _rightValues[i] = R(0.5f - N / 2f + i);
 
-            _mnRightVector = new DenseVector(_rightVector);
+            _rightVector = new Vector(_rightValues);
+            _mnRightVector = new DenseVector(_rightValues);
             
-            _result = new float[N];
-            
+            _resultValues = new float[N];
+
+            _resultVector = new Vector(_resultValues);
             _mnResult = new DenseVector(N);
         }
         
         [Benchmark]
         public float[] MainSolver() {
-            new Solver().Solve(_matrix, _rightVector, _result);
-            return _result;
+            Solver.Solve(_matrix, _rightVector, _resultVector);
+            return _resultValues;
         }
         
         [Benchmark]
         public float[] NaiveSolver() {
-            new NaiveSolver().Solve(_matrix, _rightVector, _result);
-            return _result;
+            Toeplitz.NaiveSolver.Solve(_matrix, _rightVector, _resultVector);
+            return _resultValues;
         }
 
         [Benchmark(Baseline = true)]
