@@ -40,8 +40,8 @@ namespace P1X.Toeplitz.Tests {
         }
 
         [Fact]
-        public void CreateWithOddNumberOfValues_ThrowException() {
-            Assert.Throws<ArgumentException>(() => NormalizedToeplitzMatrix.Create(new float[3]));
+        public void CreateWithEvenNumberOfValues_ThrowException() {
+            Assert.Throws<ArgumentException>(() => NormalizedToeplitzMatrix.Create(new float[4]));
         }
 
         [Fact]
