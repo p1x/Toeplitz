@@ -1,4 +1,4 @@
-# Toeplitz
+## About
 This is an implementation of the Zohar-Trench algorithm for solving a set of linear Toeplitz equations, based on the original article by S. Zohar "The Solution of a Toeplitz Set of Linear Equations" (https://doi.org/10.1145/321812.321822). There is also an option for an iterative solution that gives a valid result for increasing sub-matrix size.
 
 For more info on the alghoritm and its limitations see the referenced paper. There is also many papers about alghtoritm numerical stability.
