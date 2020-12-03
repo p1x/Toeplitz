@@ -31,15 +31,26 @@ namespace P1X.Toeplitz {
         }
 
         private static void SolveUnchecked(NormalizedToeplitzMatrixUnchecked matrix, Vector d, Vector s) {
-            s[0] = d[0];
+            var count = System.Numerics.Vector<float>.Count;
+            var size = count * (int) Math.Ceiling((matrix.Size - 1) / (float) count);
+            var size2 = count * (int) Math.Ceiling(s.Values.Length / (float) count);
 
-            var e = new float[matrix.Size - 1];
-            var g = new float[matrix.Size - 1];
+            var s2 = s;
+            if (s.Values.Length != size2) 
+                s2 = new Vector(new float[size2]);
+
+            s2[0] = d[0];
+
+            var e = new float[size];
+            var g = new float[size];
             var lambda = 1f;
             for (var i = 0; i < matrix.Size - 1; i++) {
                 CalculateInversion(matrix, i, e, g, ref lambda);
-                CalculateIntermediateResult(matrix, i + 1, d, s, e, lambda);
+                CalculateIntermediateResult(matrix, i + 1, d, s2, e, lambda);
             }
+
+            if (s2.Values != s.Values) 
+                Array.Copy(s2.Values, s.Values, s.Values.Length);
         }
         
         public void Iterate(in NormalizedToeplitzMatrix matrix, in Vector rightVector, in Vector resultVector) {
@@ -85,8 +96,14 @@ namespace P1X.Toeplitz {
                 theta -= s[j] * matrix[i - j];
 
             var thetaOverLambda = theta / lambda;
-            for (var j = 0; j < i; j++)
-                s[j] = s[j] + thetaOverLambda * e[j];
+
+            var count = System.Numerics.Vector<float>.Count;
+            for (var j = 0; j < i; j+= count) {
+                var ev = new System.Numerics.Vector<float>(e, j);
+                var sv = new System.Numerics.Vector<float>(s.Values, j);
+                var r = sv + ev * thetaOverLambda;
+                r.CopyTo(s.Values, j);
+            }
             s[i] = thetaOverLambda;
         }
 

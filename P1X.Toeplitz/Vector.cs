@@ -12,5 +12,7 @@ namespace P1X.Toeplitz {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => _values[index] = value;
         }
+
+        internal float[] Values => _values;
     }
 }

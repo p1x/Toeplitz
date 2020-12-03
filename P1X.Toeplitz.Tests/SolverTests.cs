@@ -54,6 +54,19 @@ namespace P1X.Toeplitz.Tests {
             
             Assert.Equal(expectedResult, resultValues, new RoundingSingleEqualityComparer(6));
         }
+        
+        [Theory]
+        [MemberData(nameof(GetValidTestDataBySize), new [] {8, 16, 32})]
+        public void SolveLarge_ValidResult(float[] matrixValues, float[] rightVector) {
+            var matrix = NormalizedToeplitzMatrix.Create(matrixValues);
+            var resultValues = new float[matrix.Size];
+            var resultVector = new Vector(resultValues);
+            
+            GetSolver().Solve(matrix, new Vector(rightVector), resultVector);
+            
+            var expectedResult = new float[rightVector.Length];
+            Assert.NotEqual(expectedResult, resultValues, new RoundingSingleEqualityComparer(6));
+        }
 
         public static IEnumerable<object[]> GetValidTestData() {
             // Wolfram Alpha query:
@@ -65,6 +78,22 @@ namespace P1X.Toeplitz.Tests {
             yield return new object[] { new [] { 0.4f, 0.3f, 0.2f, 1f, 0.2f, 0.3f, 0.4f }, new[] { 0.39f, 0.4f, 0.45f, 0.56f }, new[] { 0.1f, 0.2f, 0.3f, 0.4f }};
             // ToeplitzMatrix[{1, 0.2, 0.3, 0.4}, {1, 0.5, 0.6, 0.7}] . {x1, x2, x3, x4} == {0.66, 0.61, 0.57, 0.56}
             yield return new object[] { new [] { 0.7f, 0.6f, 0.5f, 1f, 0.2f, 0.3f, 0.4f }, new[] { 0.66f, 0.61f, 0.57f, 0.56f }, new[] { 0.1f, 0.2f, 0.3f, 0.4f }};            
+        }
+
+        public static IEnumerable<object[]> GetValidTestDataBySize(params int[] size) {
+            static float R(float t) => MathF.Abs(MathF.Cos(10 * t) * MathF.Exp(-t * t));
+
+            foreach (var n in size) {
+                var matrix = NormalizedToeplitzMatrix.Create(n);
+                for (var i = 1; i < n; i++)
+                    matrix[i] = matrix[-i] = R(i);
+
+                var rightValues = new float[n];
+                for (var i = 0; i < n; i++)
+                    rightValues[i] = R(0.5f - n / 2f + i);
+
+                yield return new object[] { matrix.GetUnchecked().GetValues(), rightValues };
+            }
         }
     }
 }

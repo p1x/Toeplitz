@@ -17,6 +17,12 @@ namespace P1X.Toeplitz {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Set(int index, float value) => _values[index + (Size - 1)] = value;
 
+        public float[] GetValues() {
+            var copy = new float[_values.Length];
+            _values.CopyTo(copy, 0);
+            return copy;
+        }
+
         public int Size { get; }
         
         public bool IsInitialized => _values != null;
