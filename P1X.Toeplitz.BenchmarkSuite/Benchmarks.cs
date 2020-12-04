@@ -47,7 +47,7 @@ namespace P1X.Toeplitz.BenchmarkSuite {
         
         [Benchmark]
         public float[] MainSolver() {
-            Solver.Solve(_matrix, _rightVector, _resultVector);
+            new Solver(N).Solve(_matrix, _rightVector, _resultVector);
             return _resultValues;
         }
         

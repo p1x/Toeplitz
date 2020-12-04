@@ -18,7 +18,7 @@ namespace P1X.Toeplitz.Tests {
             for (var i = 0; i < matrix.Size - 1; i++) 
                 solver.Iterate(matrix, rightVector, resultVector);
             
-            Assert.Equal(expectedResult, resultValues, new RoundingSingleEqualityComparer(6));
+            Assert.Equal(expectedResult, resultValues, new RoundingSingleEqualityComparer(5));
         }
         
         [Fact]
@@ -52,7 +52,7 @@ namespace P1X.Toeplitz.Tests {
             
             GetSolver().Solve(matrix, new Vector(rightVector), resultVector);
             
-            Assert.Equal(expectedResult, resultValues, new RoundingSingleEqualityComparer(6));
+            Assert.Equal(expectedResult, resultValues, new RoundingSingleEqualityComparer(5));
         }
         
         [Theory]
@@ -77,7 +77,13 @@ namespace P1X.Toeplitz.Tests {
             // ToeplitzMatrix[{1, 0.2, 0.3, 0.4}, {1, 0.2, 0.3, 0.4}] . {x1, x2, x3, x4} == {0.39, 0.4, 0.45, 0.56}
             yield return new object[] { new [] { 0.4f, 0.3f, 0.2f, 1f, 0.2f, 0.3f, 0.4f }, new[] { 0.39f, 0.4f, 0.45f, 0.56f }, new[] { 0.1f, 0.2f, 0.3f, 0.4f }};
             // ToeplitzMatrix[{1, 0.2, 0.3, 0.4}, {1, 0.5, 0.6, 0.7}] . {x1, x2, x3, x4} == {0.66, 0.61, 0.57, 0.56}
-            yield return new object[] { new [] { 0.7f, 0.6f, 0.5f, 1f, 0.2f, 0.3f, 0.4f }, new[] { 0.66f, 0.61f, 0.57f, 0.56f }, new[] { 0.1f, 0.2f, 0.3f, 0.4f }};            
+            yield return new object[] { new [] { 0.7f, 0.6f, 0.5f, 1f, 0.2f, 0.3f, 0.4f }, new[] { 0.66f, 0.61f, 0.57f, 0.56f }, new[] { 0.1f, 0.2f, 0.3f, 0.4f }};
+            // ToeplitzMatrix[{1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9}, {1, 0.21, 0.32, 0.43, 0.54, 0.65, 0.76, 0.87, 0.98}] . { 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9}
+            yield return new object[] { 
+                new[] { 0.98f, 0.87f, 0.76f, 0.65f, 0.54f, 0.43f, 0.32f, 0.21f, 1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f }, 
+                new[] { 3.18f, 2.796f, 2.454f, 2.175f, 1.98f, 1.89f, 1.926f, 2.109f, 2.46f }, 
+                new[] { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f }
+            };
         }
 
         public static IEnumerable<object[]> GetValidTestDataBySize(params int[] size) {
