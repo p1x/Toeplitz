@@ -17,6 +17,7 @@ namespace P1X.Toeplitz {
         private int _index = 0;
         
         private float[] _columnCache;
+        private float[] _rowCache;
 
         public Solver(int maxMatrixSize) {
             var count = System.Numerics.Vector<float>.Count;
@@ -24,24 +25,24 @@ namespace P1X.Toeplitz {
             _e = new float[size]; 
             _g = new float[size];
             _columnCache = new float[size + System.Numerics.Vector<float>.Count];
+            _rowCache = new float[size];
         }
 
         private void ResizeArrays() {
             var vectorsLength = _e.Length;
             if (_index < _e.Length)
                 return;
-            
-            var newE = new float[vectorsLength * 2];
-            var newG = new float[vectorsLength * 2];
-            var newColumn = new float[vectorsLength * 2 + System.Numerics.Vector<float>.Count];
-                
-            _e.CopyTo(newE, 0);
-            _g.CopyTo(newG, 0);
-            _columnCache.CopyTo(newColumn, vectorsLength);
 
-            _e = newE;
-            _g = newG;
-            _columnCache = newColumn;
+            void Resize(ref float[] array, int additionalSpace, int copyOffset) {
+                var newArray = new float[vectorsLength * 2 + additionalSpace];
+                array.CopyTo(newArray, copyOffset);
+                array = newArray;
+            }
+            
+            Resize(ref _e, 0, 0);
+            Resize(ref _g, 0, 0);
+            Resize(ref _columnCache, SN.Vector<float>.Count, vectorsLength);
+            Resize(ref _rowCache, 0, 0);
         }
 
         public void Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, Vector resultVector) {
@@ -86,22 +87,21 @@ namespace P1X.Toeplitz {
 
         private void IterateUnchecked(NormalizedToeplitzMatrixUnchecked matrix, Vector rightVector, Vector resultVector) {
             ResizeArrays();
-            
-            if (_index == 0) {
-                _columnCache[GetColumnCacheIndex(_index)] = matrix[_index];
+
+            if (_index == 0) 
                 CalculateIntermediateResult(_index, rightVector, resultVector);
-            }
 
             _columnCache[GetColumnCacheIndex(_index + 1)] = matrix[_index + 1];
-            CalculateInversion(matrix, _index);
+            _rowCache[0 + _index] = matrix[-(_index + 1)];
+            
+            CalculateInversion(_index);
             CalculateIntermediateResult(_index + 1, rightVector, resultVector);
             
             _index++;
         }
 
-        // Returns starting column index for provided iteration
-        private int GetColumnCacheIndex(int iteration) => 
-            _columnCache.Length - (SN.Vector<float>.Count - 1) - iteration;
+        // Returns starting column index for iteration. It's needed because column is reversed
+        private int GetColumnCacheIndex(int iteration) => _columnCache.Length - (SN.Vector<float>.Count - 1) - iteration;
 
         private void CalculateIntermediateResult(int i, Vector d, Vector s) {
             var iColumnCache = GetColumnCacheIndex(i);
@@ -128,33 +128,47 @@ namespace P1X.Toeplitz {
             s[i] = thetaOverLambda;
         }
 
-        private void CalculateInversion(NormalizedToeplitzMatrixUnchecked matrix, int i) {
-            var eta = CalculateEta(matrix, i);
-            var gamma = CalculateGamma(matrix, i);
+        private void CalculateInversion(int i) {
+            var eta = CalculateEta(i);
+            var gamma = CalculateGamma(i);
 
-            var etaOverLambda = eta / _lambda;
-            var gammaOverLambda = gamma / _lambda;
+            CalculateInversionVectors(i, eta, gamma);
 
-            CalculateInversionVectors(i, etaOverLambda, gammaOverLambda);
-
-            _lambda -= eta * gammaOverLambda;
+            _lambda -= eta * gamma / _lambda;
         }
 
-        private float CalculateEta(NormalizedToeplitzMatrixUnchecked matrix, int i) {
-            var eta = -matrix[-(i + 1)];
-            for (var j = 0; j < i; j++)
-                eta -= matrix[-(j + 1)] * _e[j];
+        private float CalculateEta(int i) {
+            var eta = -_rowCache[0 + i];
+            for (var j = 0; j < i; j += SN.Vector<float>.Count) {
+                var ev = new SN.Vector<float>(_e, j);
+                var rv = new SN.Vector<float>(_rowCache, j);
+                var sum = SN.Vector.Dot(ev * rv, SN.Vector<float>.One);
+
+                eta -= sum;
+            }
+
             return eta;
         }
 
-        private float CalculateGamma(NormalizedToeplitzMatrixUnchecked matrix, int i) {
-            var gamma = -matrix[i + 1];
-            for (var j = 0; j < i; j++)
-                gamma -= _g[j] * matrix[i - j];
+        private float CalculateGamma(int i) {
+            var iColumnCache = GetColumnCacheIndex(i);
+
+            var gamma = -_columnCache[iColumnCache - 1];
+            for (var j = 0; j < i; j+= SN.Vector<float>.Count) {
+                var gv = new SN.Vector<float>(_g, j);
+                var cv = new SN.Vector<float>(_columnCache, iColumnCache + j);
+                var sum = SN.Vector.Dot(gv * cv, SN.Vector<float>.One);
+
+                gamma -= sum;
+            }
+            
             return gamma;
         }
 
-        private void CalculateInversionVectors(int i, float etaOverLambda, float gammaOverLambda) {
+        private void CalculateInversionVectors(int i, float eta, float gamma) {
+            var etaOverLambda = eta / _lambda;
+            var gammaOverLambda = gamma / _lambda;
+            
             var ejPrev = GetSet(ref _e[0], etaOverLambda);
             for (var j = 0; j < i; j++) {
                 var gjPrev = GetSet(ref _g[j], _g[j] + gammaOverLambda * ejPrev);
