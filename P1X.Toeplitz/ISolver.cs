@@ -1,8 +1,7 @@
 ﻿namespace P1X.Toeplitz {
-    public interface ISolver<in TMatrix, in TVectorB, in TVectorA> 
+    public interface ISolver<in TMatrix, in TVectorB> 
         where TMatrix : struct, IReadOnlyToeplitzMatrix
-        where TVectorB : struct, IReadOnlyVector 
-        where TVectorA : struct, IVector {
-        void Solve(TMatrix matrix, TVectorB rightVector, TVectorA resultVector);
+        where TVectorB : struct, IReadOnlyVector {
+        void Solve(TMatrix matrix, TVectorB rightVector, float[] resultVector);
     }
 }

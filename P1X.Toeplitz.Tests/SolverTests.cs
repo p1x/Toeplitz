@@ -4,68 +4,121 @@ using Xunit;
 
 namespace P1X.Toeplitz.Tests {
     public class SolverTests : SolverTestsBase {
-        protected override ISolver<NormalizedToeplitzMatrix, Vector, Vector> GetSolver() => new Solver(4);
+        protected override ISolver<NormalizedToeplitzMatrix, Vector> GetSolver() => new Solver(4);
 
         [Theory]
         [MemberData(nameof(GetValidTestData))]
         public void Iterate_ValidResult(float[] matrixValues, float[] rightValues, float[] expectedResult) {
             var solver = new Solver(2);
             var matrix = NormalizedToeplitzMatrix.Create(matrixValues);
-            var resultValues = new float[matrix.Size];
-            var resultVector = new Vector(resultValues);
+            var resultVector = new float[matrix.Size];
             var rightVector = new Vector(rightValues);
 
             for (var i = 0; i < matrix.Size - 1; i++) 
                 solver.Iterate(matrix, rightVector, resultVector);
             
-            Assert.Equal(expectedResult, resultValues, new RoundingSingleEqualityComparer(5));
+            Assert.Equal(expectedResult, resultVector, new RoundingSingleEqualityComparer(5));
         }
         
         [Fact]
         public void IterateDefaultParameters_ThrowException() {
-            Assert.Throws<ArgumentNullException>(() => new Solver(2).Iterate(NormalizedToeplitzMatrix.Create(2), default, new Vector(new float[2])));
+            Assert.Throws<ArgumentNullException>(() => new Solver(2).Iterate(NormalizedToeplitzMatrix.Create(2), default, new float[2]));
             Assert.Throws<ArgumentNullException>(() => new Solver(2).Iterate(NormalizedToeplitzMatrix.Create(2), new Vector(new float[2]), default));
-            Assert.Throws<ArgumentException>(() => new Solver(2).Iterate(default, new Vector(new float[2]), new Vector(new float[2])));
+            Assert.Throws<ArgumentException>(() => new Solver(2).Iterate(default, new Vector(new float[2]), new float[2]));
+        }
+        
+        [Fact]
+        public void IterateMatrixInsufficientSize_ThrowException() {
+            var solver = new Solver(2);
+            var matrix = NormalizedToeplitzMatrix.Create(2);
+            var size = Solver.ResultVectorMultiplier;
+            var b = new Vector(new float[size]);
+            var x = new float[size];
+            solver.Iterate(matrix, b, x);
+            
+            Assert.Throws<ArgumentException>(() => solver.Iterate(matrix, b, x));
+        }
+        
+        [Fact]
+        public void IterateRightVectorInsufficientSize_ThrowException() {
+            var solver = new Solver(2);
+            var size = Solver.ResultVectorMultiplier;
+            var matrix = NormalizedToeplitzMatrix.Create(size * 2);
+            var b = new Vector(new float[size]);
+            var x = new float[size * 2];
+            for (var i = 0; i < size - 1; i++) 
+                solver.Iterate(matrix, b, x);
+            
+            Assert.Throws<ArgumentException>(() => solver.Iterate(matrix, b, x));
+        }
+        
+        [Fact]
+        public void IterateResultVectorInsufficientSize_ThrowException() {
+            var solver = new Solver(2);
+            var size = Solver.ResultVectorMultiplier;
+            var matrix = NormalizedToeplitzMatrix.Create(size * 2);
+            var b = new Vector(new float[size * 2]);
+            var x = new float[size];
+            for (var i = 0; i < size - 1; i++) 
+                solver.Iterate(matrix, b, x);
+            
+            Assert.Throws<ArgumentException>(() => solver.Iterate(matrix, b, x));
+        }
+        
+        [Fact]
+        public void IterateResultVectorInsufficientSize2_ThrowException() {
+            var solver = new Solver(2);
+            var size = System.Numerics.Vector<float>.Count;
+            var matrix = NormalizedToeplitzMatrix.Create(size);
+            var b = new Vector(new float[size]);
+            var x = new float[size - 1];
+
+            Assert.Throws<ArgumentException>(() => solver.Iterate(matrix, b, x));
         }
     }
 
     public class NaiveSolverTests : SolverTestsBase {
-        protected override ISolver<NormalizedToeplitzMatrix, Vector, Vector> GetSolver() => new NaiveSolver();
+        protected override ISolver<NormalizedToeplitzMatrix, Vector> GetSolver() => new NaiveSolver();
     }
     
     public abstract class SolverTestsBase {
-        protected abstract ISolver<NormalizedToeplitzMatrix, Vector, Vector> GetSolver();
+        protected abstract ISolver<NormalizedToeplitzMatrix, Vector> GetSolver();
         
         [Fact]
         public void SolveDefaultParameters_ThrowException() {
-            Assert.Throws<ArgumentNullException>(() => GetSolver().Solve(NormalizedToeplitzMatrix.Create(2), default, new Vector(new float[2])));
+            Assert.Throws<ArgumentNullException>(() => GetSolver().Solve(NormalizedToeplitzMatrix.Create(2), default, new float[2]));
             Assert.Throws<ArgumentNullException>(() => GetSolver().Solve(NormalizedToeplitzMatrix.Create(2), new Vector(new float[2]), default));
-            Assert.Throws<ArgumentException>(() => GetSolver().Solve(default, new Vector(new float[2]), new Vector(new float[2])));
+            Assert.Throws<ArgumentException>(() => GetSolver().Solve(default, new Vector(new float[2]), new float[2]));
+        }
+        
+        [Fact]
+        public void SolveDifferentVectorAndMatrixSizes_ThrowException() {
+            Assert.Throws<ArgumentException>(() => GetSolver().Solve(NormalizedToeplitzMatrix.Create(3), new Vector(new float[2]), new float[2]));
+            Assert.Throws<ArgumentException>(() => GetSolver().Solve(NormalizedToeplitzMatrix.Create(2), new Vector(new float[3]), new float[2]));
+            Assert.Throws<ArgumentException>(() => GetSolver().Solve(NormalizedToeplitzMatrix.Create(2), new Vector(new float[2]), new float[3]));
         }
 
         [Theory]
         [MemberData(nameof(GetValidTestData))]
         public void Solve_ValidResult(float[] matrixValues, float[] rightVector, float[] expectedResult) {
             var matrix = NormalizedToeplitzMatrix.Create(matrixValues);
-            var resultValues = new float[matrix.Size];
-            var resultVector = new Vector(resultValues);
+            var resultVector = new float[matrix.Size];
             
             GetSolver().Solve(matrix, new Vector(rightVector), resultVector);
             
-            Assert.Equal(expectedResult, resultValues, new RoundingSingleEqualityComparer(5));
+            Assert.Equal(expectedResult, resultVector, new RoundingSingleEqualityComparer(5));
         }
         
         [Theory]
         [MemberData(nameof(GetValidTestDataBySize), new [] {8, 16, 32})]
         public void SolveLarge_ValidResult(float[] matrixValues, float[] rightVector) {
             var matrix = NormalizedToeplitzMatrix.Create(matrixValues);
-            var resultValues = new float[matrix.Size];
-            var resultVector = new Vector(resultValues);
+            var resultVector = new float[matrix.Size];
             
             GetSolver().Solve(matrix, new Vector(rightVector), resultVector);
             
             var expectedResult = new float[rightVector.Length];
-            Assert.NotEqual(expectedResult, resultValues, new RoundingSingleEqualityComparer(6));
+            Assert.NotEqual(expectedResult, resultVector, new RoundingSingleEqualityComparer(6));
         }
 
         public static IEnumerable<object[]> GetValidTestData() {

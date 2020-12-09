@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 
 namespace P1X.Toeplitz {
     using SN = System.Numerics;
@@ -10,7 +9,7 @@ namespace P1X.Toeplitz {
     /// https://doi.org/10.1145/321812.321822
     /// </summary>
     [SuppressMessage("ReSharper", "SuggestBaseTypeForParameter")]
-    public class Solver : ISolver<NormalizedToeplitzMatrix, Vector, Vector> {
+    public class Solver : ISolver<NormalizedToeplitzMatrix, Vector> {
         private float[] _e; // reversed vector
         private float[] _g;
         private float _lambda = 1f;
@@ -30,6 +29,8 @@ namespace P1X.Toeplitz {
             _rowCache = new float[_vectorsLength];
         }
 
+        public static int ResultVectorMultiplier => SN.Vector<float>.Count;
+        
         private void ResizeArrays() {
             ResizeArray(ref _e, SN.Vector<float>.Count, 0);
             ResizeArray(ref _g, 0, 0);
@@ -45,43 +46,59 @@ namespace P1X.Toeplitz {
             array = newArray;
         }
 
-        public void Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, Vector resultVector) {
+        public void Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, float[] resultVector) {
             if (!matrix.IsInitialized)
                 throw new ArgumentException("The matrix should be initialized (non-default).", nameof(matrix));
             if (rightVector.Equals(default(Vector)))
                 throw new ArgumentNullException(nameof(rightVector));
-            if (resultVector.Equals(default(Vector)))
+            if (resultVector == null)
                 throw new ArgumentNullException(nameof(resultVector));
+            if (matrix.Size != rightVector.Size)
+                throw new ArgumentException("Vectors and the matrix should be the same size.", nameof(rightVector));
+            if (matrix.Size != resultVector.Length)
+                throw new ArgumentException("Vectors and the matrix should be the same size.", nameof(resultVector));
+            
 
             SolveUnchecked(matrix.GetUnchecked(), rightVector, resultVector);
         }
 
-        private void SolveUnchecked(NormalizedToeplitzMatrixUnchecked matrix, Vector d, Vector s) {
+        private void SolveUnchecked(NormalizedToeplitzMatrixUnchecked matrix, Vector d, float[] s) {
             var vCount = System.Numerics.Vector<float>.Count;
             
-            var size = vCount * (int) Math.Ceiling(s.Values.Length / (float) vCount);
-            var s2 = s.Values.Length == size ? s : new Vector(new float[size]);
+            var size = vCount * (int) Math.Ceiling(s.Length / (float) vCount);
+            var s2 = s.Length == size ? s : new float[size];
             
             s2[0] = d[0];
             while (_index < matrix.Size - 1) 
                 IterateUnchecked(matrix, d, s2);
             
-            if (s2.Values != s.Values) 
-                Array.Copy(s2.Values, s.Values, s.Values.Length);
+            if (s2 != s) 
+                Array.Copy(s2, s, s.Length);
         }
 
-        public void Iterate(in NormalizedToeplitzMatrix matrix, in Vector rightVector, in Vector resultVector) {
+        public void Iterate(NormalizedToeplitzMatrix matrix, Vector rightVector, float[] resultVector) {
             if (!matrix.IsInitialized)
                 throw new ArgumentException("The matrix should be initialized (non-default).", nameof(matrix));
             if (rightVector.Equals(default(Vector)))
                 throw new ArgumentNullException(nameof(rightVector));
-            if (resultVector.Equals(default(Vector)))
+            if (resultVector == null)
                 throw new ArgumentNullException(nameof(resultVector));
+
+            var minSize = _index + 2;
+            if (matrix.Size < minSize)
+                throw new ArgumentException("Matrix size is insufficient for current iteration.", nameof(matrix));
+            if (rightVector.Size < minSize)
+                throw new ArgumentException("Vector size is insufficient for current iteration.", nameof(rightVector));
+
+            var vSize = System.Numerics.Vector<float>.Count;
+            var minResultSize = vSize * Math.Max(1, (int) Math.Ceiling(minSize / (float) vSize));
+            if (resultVector.Length < minResultSize)
+                throw new ArgumentException("Vector size is insufficient for current iteration.", nameof(resultVector));
             
             IterateUnchecked(matrix.GetUnchecked(), rightVector, resultVector);
         }
 
-        private void IterateUnchecked(NormalizedToeplitzMatrixUnchecked matrix, Vector rightVector, Vector resultVector) {
+        private void IterateUnchecked(NormalizedToeplitzMatrixUnchecked matrix, Vector rightVector, float[] resultVector) {
             if (_index >= _vectorsLength)
                 ResizeArrays();
 
@@ -100,13 +117,12 @@ namespace P1X.Toeplitz {
         // Returns starting column index for iteration. It's needed because column is reversed
         private int GetColumnCacheIndex(int iteration) => _columnCache.Length - (SN.Vector<float>.Count - 1) - iteration;
 
-        private void CalculateIntermediateResult(int i, Vector d, Vector s) {
+        private void CalculateIntermediateResult(int i, Vector d, float[] s) {
             var iColumnCache = GetColumnCacheIndex(i);
-            
-            var sValues = s.Values;
+
             var theta = d[i];
             for (var j = 0; j < i; j+= SN.Vector<float>.Count) {
-                var sv = new SN.Vector<float>(sValues, j);
+                var sv = new SN.Vector<float>(s, j);
                 var cv = new SN.Vector<float>(_columnCache, iColumnCache + j);
                 var sum = SN.Vector.Dot(sv, cv);
                 
@@ -117,10 +133,10 @@ namespace P1X.Toeplitz {
 
             for (var j = 0; j < i; j+= SN.Vector<float>.Count) {
                 var ev = new SN.Vector<float>(_e, j);
-                var sv = new SN.Vector<float>(sValues, j);
+                var sv = new SN.Vector<float>(s, j);
                 
                 var r = sv + ev * thetaOverLambda;
-                r.CopyTo(sValues, j);
+                r.CopyTo(s, j);
             }
             s[i] = thetaOverLambda[0];
         }
@@ -182,8 +198,5 @@ namespace P1X.Toeplitz {
             _e[0] = etaOverLambda[0];
             _g[i] = gammaOverLambda[0];
         }
-
-        void ISolver<NormalizedToeplitzMatrix, Vector, Vector>.Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, Vector resultVector) => 
-            Solve(matrix, rightVector, resultVector);
     }
 }
