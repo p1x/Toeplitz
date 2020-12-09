@@ -5,19 +5,23 @@ namespace P1X.Toeplitz {
     /// Direct "naive" implementation of Zohar-Trench algorithm.
     /// https://doi.org/10.1145/321812.321822
     /// </summary>
-    public class NaiveSolver : ISolver<NormalizedToeplitzMatrix, Vector, Vector> {
-        public static void Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, Vector resultVector) {
+    public class NaiveSolver : ISolver<NormalizedToeplitzMatrix, Vector> {
+        public static void Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, float[] resultVector) {
             if (!matrix.IsInitialized)
-                throw new ArgumentException("The matrix should be initialized (non-default).", nameof(matrix));
+                throw new ArgumentException(Resources.Solver_MatrixNotInitialized, nameof(matrix));
             if (rightVector.Equals(default(Vector)))
                 throw new ArgumentNullException(nameof(rightVector));
-            if (resultVector.Equals(default(Vector)))
+            if (resultVector == null)
                 throw new ArgumentNullException(nameof(resultVector));
-
+            if (matrix.Size != rightVector.Size)
+                throw new ArgumentException(Resources.Solver_InvalidVectorSize, nameof(rightVector));
+            if (matrix.Size != resultVector.Length)
+                throw new ArgumentException(Resources.Solver_InvalidVectorSize, nameof(resultVector));
+            
             SolveCore(matrix, rightVector, resultVector);
         }
         
-        private static void SolveCore(NormalizedToeplitzMatrix L, Vector d, Vector s) {
+        private static void SolveCore(NormalizedToeplitzMatrix L, Vector d, float[] s) {
             var sPrev = new float[] { d[0] };
             var ePrev = new float[] { -L[-1] }; // already reversed
             var gPrev = new float[] { -L[1] };
@@ -65,7 +69,7 @@ namespace P1X.Toeplitz {
                 s[i] = sPrev[i];
         }
 
-        void ISolver<NormalizedToeplitzMatrix, Vector, Vector>.Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, Vector resultVector) => 
+        void ISolver<NormalizedToeplitzMatrix, Vector>.Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, float[] resultVector) => 
             Solve(matrix, rightVector, resultVector);
     }
 }

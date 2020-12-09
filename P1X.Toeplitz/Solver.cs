@@ -1,139 +1,234 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 
 namespace P1X.Toeplitz {
+    using SN = System.Numerics;
+    
     /// <summary>
     /// Main implementation of Zohar-Trench algorithm.
     /// https://doi.org/10.1145/321812.321822
     /// </summary>
     [SuppressMessage("ReSharper", "SuggestBaseTypeForParameter")]
-    public class Solver : ISolver<NormalizedToeplitzMatrix, Vector, Vector> {
+    public class Solver : ISolver<NormalizedToeplitzMatrix, Vector> {
         private float[] _e; // reversed vector
         private float[] _g;
         private float _lambda = 1f;
-        private int _index = 0;
+        private int _index;
         
-        public Solver(int maxMatrixSize) {
-            _e = new float[maxMatrixSize - 1]; 
-            _g = new float[maxMatrixSize - 1];
+        private float[] _columnCache;
+        private float[] _rowCache;
+
+        private int _vectorsLength;
+        
+        /// <summary>
+        /// Create new solver with cache and intermediate data storage capacity calculated for given matrix size.
+        /// </summary>
+        /// <param name="expectedMatrixSize">Expected matrix size</param>
+        public Solver(int expectedMatrixSize) {
+            var vCount = System.Numerics.Vector<float>.Count;
+            _vectorsLength = vCount * (int) Math.Ceiling((expectedMatrixSize - 1) / (float) vCount);
+            _e = new float[_vectorsLength + vCount]; 
+            _g = new float[_vectorsLength];
+            _columnCache = new float[_vectorsLength + vCount];
+            _rowCache = new float[_vectorsLength];
         }
+
+        /// <summary>
+        /// Multiplier for result vector used in <see cref="Iterate"/>
+        /// </summary>
+        public static int ResultVectorMultiplier => SN.Vector<float>.Count;
         
-        public static void Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, Vector resultVector) {
+        private void ResizeArrays() {
+            ResizeArray(ref _e, SN.Vector<float>.Count, 0);
+            ResizeArray(ref _g, 0, 0);
+            ResizeArray(ref _columnCache, SN.Vector<float>.Count, _vectorsLength);
+            ResizeArray(ref _rowCache, 0, 0);
+
+            _vectorsLength *= 2;
+        }
+
+        private void ResizeArray(ref float[] array, int additionalSpace, int copyOffset) {
+            var newArray = new float[_vectorsLength * 2 + additionalSpace];
+            array.CopyTo(newArray, copyOffset);
+            array = newArray;
+        }
+
+        /// <summary>
+        /// Solve equation in form of A*x = b where A is coefficient Toeplitz matrix and x and b is vectors. 
+        /// </summary>
+        /// <param name="matrix">Coefficients matrix</param>
+        /// <param name="rightVector">Right-hand size vector</param>
+        /// <param name="resultVector">Result vector</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="matrix"/> is not initialized -or- 
+        /// <paramref name="rightVector"/> or <paramref name="resultVector"/> size is not equal to <paramref name="matrix"/> size.
+        /// </exception>
+        /// <exception cref="ArgumentNullException"><paramref name="rightVector"/> is <c>default</c> or <paramref name="resultVector"/> is <c>null</c>.</exception>
+        public void Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, float[] resultVector) {
             if (!matrix.IsInitialized)
-                throw new ArgumentException("The matrix should be initialized (non-default).", nameof(matrix));
+                throw new ArgumentException(Resources.Solver_MatrixNotInitialized, nameof(matrix));
             if (rightVector.Equals(default(Vector)))
                 throw new ArgumentNullException(nameof(rightVector));
-            if (resultVector.Equals(default(Vector)))
+            if (resultVector == null)
                 throw new ArgumentNullException(nameof(resultVector));
+            if (matrix.Size != rightVector.Size)
+                throw new ArgumentException(Resources.Solver_InvalidVectorSize, nameof(rightVector));
+            if (matrix.Size != resultVector.Length)
+                throw new ArgumentException(Resources.Solver_InvalidVectorSize, nameof(resultVector));
+            
 
-            SolveUnchecked(matrix.GetUnchecked(), rightVector, resultVector);
+            SolveUnchecked(matrix, rightVector, resultVector);
         }
 
-        private static void SolveUnchecked(NormalizedToeplitzMatrixUnchecked matrix, Vector d, Vector s) {
-            s[0] = d[0];
-
-            var e = new float[matrix.Size - 1];
-            var g = new float[matrix.Size - 1];
-            var lambda = 1f;
-            for (var i = 0; i < matrix.Size - 1; i++) {
-                CalculateInversion(matrix, i, e, g, ref lambda);
-                CalculateIntermediateResult(matrix, i + 1, d, s, e, lambda);
-            }
+        private void SolveUnchecked(NormalizedToeplitzMatrix matrix, Vector d, float[] s) {
+            var vCount = System.Numerics.Vector<float>.Count;
+            
+            var size = vCount * (int) Math.Ceiling(s.Length / (float) vCount);
+            var s2 = s.Length == size ? s : new float[size];
+            
+            s2[0] = d[0];
+            while (_index < matrix.Size - 1) 
+                IterateUnchecked(matrix, d, s2);
+            
+            if (s2 != s) 
+                Array.Copy(s2, s, s.Length);
         }
-        
-        public void Iterate(in NormalizedToeplitzMatrix matrix, in Vector rightVector, in Vector resultVector) {
+
+        /// <summary>
+        /// Calculate one iteration. It's useful for some algorithms.
+        /// First iterations, which is trivial, is skipped.
+        /// Result vector size should be multiple of <see cref="ResultVectorMultiplier"/>.  
+        /// </summary>
+        /// <param name="matrix">Coefficients matrix</param>
+        /// <param name="rightVector">Right-hand side vector</param>
+        /// <param name="resultVector">Result vector</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="matrix"/> is not initialized or its size is insufficient for current iteration -or- 
+        /// <paramref name="rightVector"/> size is insufficient for current iteration -or-
+        /// <paramref name="resultVector"/> size is insufficient for current iteration.
+        /// </exception>
+        /// <exception cref="ArgumentNullException"><paramref name="rightVector"/> is <c>default</c> or <paramref name="resultVector"/> is <c>null</c>.</exception>
+        public void Iterate(NormalizedToeplitzMatrix matrix, Vector rightVector, float[] resultVector) {
             if (!matrix.IsInitialized)
-                throw new ArgumentException("The matrix should be initialized (non-default).", nameof(matrix));
+                throw new ArgumentException(Resources.Solver_MatrixNotInitialized, nameof(matrix));
             if (rightVector.Equals(default(Vector)))
                 throw new ArgumentNullException(nameof(rightVector));
-            if (resultVector.Equals(default(Vector)))
+            if (resultVector == null)
                 throw new ArgumentNullException(nameof(resultVector));
+
+            var minSize = _index + 2;
+            if (matrix.Size < minSize)
+                throw new ArgumentException(Resources.Solver_InsufficientMatrixSize, nameof(matrix));
+            if (rightVector.Size < minSize)
+                throw new ArgumentException(Resources.Solver_InsufficientVectorSize, nameof(rightVector));
+
+            var vSize = System.Numerics.Vector<float>.Count;
+            var minResultSize = vSize * Math.Max(1, (int) Math.Ceiling(minSize / (float) vSize));
+            if (resultVector.Length < minResultSize)
+                throw new ArgumentException(Resources.Solver_InsufficientVectorSize, nameof(resultVector));
             
-            IterateUnchecked(matrix.GetUnchecked(), rightVector, resultVector);
+            IterateUnchecked(matrix, rightVector, resultVector);
         }
 
-        private void IterateUnchecked(NormalizedToeplitzMatrixUnchecked matrix, Vector rightVector, Vector resultVector) {
-            ResizeArrays();
+        private void IterateUnchecked(NormalizedToeplitzMatrix matrix, Vector rightVector, float[] resultVector) {
+            if (_index >= _vectorsLength)
+                ResizeArrays();
+
+            if (_index == 0) 
+                CalculateIntermediateResult(_index, rightVector, resultVector);
+
+            _columnCache[GetColumnCacheIndex(_index + 1)] = matrix[_index + 1];
+            _rowCache[_index] = matrix[-(_index + 1)];
             
-            if (_index == 0)
-                CalculateIntermediateResult(matrix, 0, rightVector, resultVector, _e, _lambda);
-            
-            CalculateInversion(matrix, _index, _e, _g, ref _lambda);
-            CalculateIntermediateResult(matrix, _index + 1, rightVector, resultVector, _e, _lambda);
+            CalculateInversion(_index);
+            CalculateIntermediateResult(_index + 1, rightVector, resultVector);
             
             _index++;
         }
 
-        private void ResizeArrays() {
-            if (_index <= _e.Length - 1)
-                return;
-            
-            var newE = new float[_e.Length * 2];
-            var newG = new float[_g.Length * 2];
-                
-            _e.CopyTo(newE, 0);
-            _g.CopyTo(newG, 0);
+        // Returns starting column index for iteration. It's needed because column is reversed
+        private int GetColumnCacheIndex(int iteration) => _columnCache.Length - (SN.Vector<float>.Count - 1) - iteration;
 
-            _e = newE;
-            _g = newG;
-        }
+        private void CalculateIntermediateResult(int i, Vector d, float[] s) {
+            var iColumnCache = GetColumnCacheIndex(i);
 
-        private static void CalculateIntermediateResult(NormalizedToeplitzMatrixUnchecked matrix, int i, Vector d, Vector s, float[] e, float lambda) {
             var theta = d[i];
-            for (var j = 0; j < i; j++)
-                theta -= s[j] * matrix[i - j];
+            for (var j = 0; j < i; j+= SN.Vector<float>.Count) {
+                var sv = new SN.Vector<float>(s, j);
+                var cv = new SN.Vector<float>(_columnCache, iColumnCache + j);
+                var sum = SN.Vector.Dot(sv, cv);
+                
+                theta -= sum;
+            }
 
-            var thetaOverLambda = theta / lambda;
-            for (var j = 0; j < i; j++)
-                s[j] = s[j] + thetaOverLambda * e[j];
-            s[i] = thetaOverLambda;
+            var thetaOverLambda = new SN.Vector<float>(theta / _lambda);
+
+            for (var j = 0; j < i; j+= SN.Vector<float>.Count) {
+                var ev = new SN.Vector<float>(_e, j);
+                var sv = new SN.Vector<float>(s, j);
+                
+                var r = sv + ev * thetaOverLambda;
+                r.CopyTo(s, j);
+            }
+            s[i] = thetaOverLambda[0];
         }
 
-        private static void CalculateInversion(NormalizedToeplitzMatrixUnchecked matrix, int i, float[] e, float[] g, ref float lambda) {
-            var eta = CalculateEta(matrix, i, e);
-            var gamma = CalculateGamma(matrix, i, g);
+        private void CalculateInversion(int i) {
+            var eta = CalculateEta(i);
+            var gamma = CalculateGamma(i);
 
-            var etaOverLambda = eta / lambda;
-            var gammaOverLambda = gamma / lambda;
+            CalculateInversionVectors(i, eta, gamma);
 
-            CalculateInversionVectors(i, e, g, etaOverLambda, gammaOverLambda);
-
-            lambda -= eta * gammaOverLambda;
+            _lambda -= eta * gamma / _lambda;
         }
 
-        private static float CalculateEta(NormalizedToeplitzMatrixUnchecked matrix, int i, float[] e) {
-            var eta = -matrix[-(i + 1)];
-            for (var j = 0; j < i; j++)
-                eta -= matrix[-(j + 1)] * e[j];
+        private float CalculateEta(int i) {
+            var eta = -_rowCache[0 + i];
+            for (var j = 0; j < i; j += SN.Vector<float>.Count) {
+                var ev = new SN.Vector<float>(_e, j);
+                var rv = new SN.Vector<float>(_rowCache, j);
+                var sum = SN.Vector.Dot(ev, rv);
+
+                eta -= sum;
+            }
+
             return eta;
         }
 
-        private static float CalculateGamma(NormalizedToeplitzMatrixUnchecked matrix, int i, float[] g) {
-            var gamma = -matrix[i + 1];
-            for (var j = 0; j < i; j++)
-                gamma -= g[j] * matrix[i - j];
+        private float CalculateGamma(int i) {
+            var iColumnCache = GetColumnCacheIndex(i);
+
+            var gamma = -_columnCache[iColumnCache - 1];
+            for (var j = 0; j < i; j+= SN.Vector<float>.Count) {
+                var gv = new SN.Vector<float>(_g, j);
+                var cv = new SN.Vector<float>(_columnCache, iColumnCache + j);
+                var sum = SN.Vector.Dot(gv, cv);
+
+                gamma -= sum;
+            }
+            
             return gamma;
         }
 
-        private static void CalculateInversionVectors(int i, float[] e, float[] g, float etaOverLambda, float gammaOverLambda) {
-            var ejPrev = GetSet(ref e[0], etaOverLambda);
-            for (var j = 0; j < i; j++) {
-                var gjPrev = GetSet(ref g[j], g[j] + gammaOverLambda * ejPrev);
-                ejPrev = GetSet(ref e[j + 1], ejPrev + etaOverLambda * gjPrev);
+        private void CalculateInversionVectors(int i, float eta, float gamma) {
+            var etaOverLambda = new SN.Vector<float>(eta / _lambda);
+            var gammaOverLambda = new SN.Vector<float>(gamma / _lambda);
+
+            var ev = new SN.Vector<float>(_e, 0); 
+            for (var j = 0; j < i; j += SN.Vector<float>.Count) {
+                var gv = new SN.Vector<float>(_g, j);
+
+                var gvNew = gv + gammaOverLambda * ev;
+                var evNew = ev + etaOverLambda * gv;
+
+                ev = new SN.Vector<float>(_e, j + SN.Vector<float>.Count);
+
+                gvNew.CopyTo(_g, j);
+                evNew.CopyTo(_e, j + 1);
             }
-            g[i] = gammaOverLambda;
+            
+            _e[0] = etaOverLambda[0];
+            _g[i] = gammaOverLambda[0];
         }
-
-        // Set new value and return original value
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float GetSet(ref float target, in float value) {
-            var result = target;
-            target = value;
-            return result;
-        }
-
-        void ISolver<NormalizedToeplitzMatrix, Vector, Vector>.Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, Vector resultVector) => 
-            Solve(matrix, rightVector, resultVector);
     }
 }

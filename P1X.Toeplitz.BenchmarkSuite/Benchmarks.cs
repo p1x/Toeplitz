@@ -14,7 +14,6 @@ namespace P1X.Toeplitz.BenchmarkSuite {
         private float[] _rightValues;
         private float[] _resultValues;
         private Vector _rightVector;
-        private Vector _resultVector;
         private DenseMatrix _mnMatrix;
         private DenseVector _mnRightVector;
         private DenseVector _mnResult;
@@ -41,19 +40,18 @@ namespace P1X.Toeplitz.BenchmarkSuite {
             
             _resultValues = new float[N];
 
-            _resultVector = new Vector(_resultValues);
             _mnResult = new DenseVector(N);
         }
         
         [Benchmark]
         public float[] MainSolver() {
-            Solver.Solve(_matrix, _rightVector, _resultVector);
+            new Solver(N).Solve(_matrix, _rightVector, _resultValues);
             return _resultValues;
         }
         
         [Benchmark]
         public float[] NaiveSolver() {
-            Toeplitz.NaiveSolver.Solve(_matrix, _rightVector, _resultVector);
+            Toeplitz.NaiveSolver.Solve(_matrix, _rightVector, _resultValues);
             return _resultValues;
         }
 

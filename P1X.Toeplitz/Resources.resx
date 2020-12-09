@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<root>
+    <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+        <xsd:element name="root" msdata:IsDataSet="true">
+            
+        </xsd:element>
+    </xsd:schema>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>1.3</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <data name="NormalizedToeplitzMatrix_IndexOutOfRange" xml:space="preserve">
+        <value>The index should be between -N and N, where N is the size of the matrix.</value>
+    </data>
+    <data name="NormalizedToeplitzMatrix_CantSetMainDiagonal" xml:space="preserve">
+        <value>Can't set main diagonal values for the normalized matrix.</value>
+    </data>
+    <data name="Solver_MatrixNotInitialized" xml:space="preserve">
+        <value>The matrix should be initialized (non-default).</value>
+    </data>
+    <data name="Solver_InsufficientMatrixSize" xml:space="preserve">
+        <value>Matrix size is insufficient for current iteration.</value>
+    </data>
+    <data name="Solver_InsufficientVectorSize" xml:space="preserve">
+        <value>Vector size is insufficient for current iteration.</value>
+    </data>
+    <data name="Solver_InvalidVectorSize" xml:space="preserve">
+        <value>Vectors and the matrix should be the same size.</value>
+    </data>
+    <data name="NormalizedToeplitzMatrix_InvalidSize" xml:space="preserve">
+        <value>Size should be grater then 1.</value>
+    </data>
+    <data name="NormalizedToeplitzMatrix_InvalidArrayLength" xml:space="preserve">
+        <value>Array length should be odd.</value>
+    </data>
+    <data name="NormalizedToeplitzMatrix_ArrayDataNotNormilized" xml:space="preserve">
+        <value>Normalized matrix should contains 1 at main diagonal (at {0} index of the array).</value>
+    </data>
+</root>
