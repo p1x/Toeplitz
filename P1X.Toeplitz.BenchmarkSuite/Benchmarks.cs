@@ -49,12 +49,6 @@ namespace P1X.Toeplitz.BenchmarkSuite {
             return _resultValues;
         }
         
-        [Benchmark]
-        public float[] NaiveSolver() {
-            Toeplitz.NaiveSolver.Solve(_matrix, _rightVector, _resultValues);
-            return _resultValues;
-        }
-
         [Benchmark(Baseline = true)]
         public DenseVector MathNetNativeMkl() {
             Control.UseNativeMKL();

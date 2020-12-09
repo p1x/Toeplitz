@@ -5,7 +5,7 @@ namespace P1X.Toeplitz {
     using SN = System.Numerics;
     
     /// <summary>
-    /// Main implementation of Zohar-Trench algorithm.
+    /// Implementation of Zohar-Trench algorithm.
     /// https://doi.org/10.1145/321812.321822
     /// </summary>
     [SuppressMessage("ReSharper", "SuggestBaseTypeForParameter")]

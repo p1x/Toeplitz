@@ -77,10 +77,6 @@ namespace P1X.Toeplitz.Tests {
         }
     }
 
-    public class NaiveSolverTests : SolverTestsBase {
-        protected override ISolver<NormalizedToeplitzMatrix, Vector> GetSolver() => new NaiveSolver();
-    }
-    
     public abstract class SolverTestsBase {
         protected abstract ISolver<NormalizedToeplitzMatrix, Vector> GetSolver();
         
