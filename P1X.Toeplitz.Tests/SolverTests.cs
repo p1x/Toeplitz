@@ -4,7 +4,7 @@ using Xunit;
 
 namespace P1X.Toeplitz.Tests {
     public class SingleSolverTests : SolverTestsBase<NormalizedToeplitzMatrixSingle, VectorSingle, float> {
-        protected override ISolver<NormalizedToeplitzMatrixSingle, VectorSingle, float> GetSolver() => new SingleSolver(2);
+        protected override ISolver<NormalizedToeplitzMatrixSingle, VectorSingle, float> GetSolver() => new SingleSolver<NormalizedToeplitzMatrixSingle, VectorSingle>(2);
 
         protected override NormalizedToeplitzMatrixSingle NewMatrix(int size) => NormalizedToeplitzMatrixSingle.Create(size);
 
@@ -16,7 +16,7 @@ namespace P1X.Toeplitz.Tests {
 
         [Fact]
         public void SingleSolver_CanCreate() {
-            var solver = new SingleSolver(2);
+            var solver = new SingleSolver<NormalizedToeplitzMatrixSingle, VectorSingle>(2);
             Assert.NotNull(solver);
         }
     }
