@@ -2,21 +2,21 @@
 using System.Runtime.CompilerServices;
 
 namespace P1X.Toeplitz {
-    public readonly struct NormalizedToeplitzMatrix : IReadOnlyToeplitzMatrix {
+    public readonly struct NormalizedToeplitzMatrixSingle : IReadOnlyToeplitzMatrix<float> {
         private readonly float[] _values;
 
-        private NormalizedToeplitzMatrix(int size, float[] values) => (Size, _values) = (size, values);
+        private NormalizedToeplitzMatrixSingle(int size, float[] values) => (Size, _values) = (size, values);
 
-        public static NormalizedToeplitzMatrix Create(int size) {
+        public static NormalizedToeplitzMatrixSingle Create(int size) {
             if (size < 1)
                 throw new ArgumentOutOfRangeException(nameof(size), size, Resources.NormalizedToeplitzMatrix_InvalidSize);
 
             var values = new float[(size - 1) * 2 + 1];
             values[size - 1] = 1f;
-            return new NormalizedToeplitzMatrix(size, values);
+            return new NormalizedToeplitzMatrixSingle(size, values);
         }
 
-        public static NormalizedToeplitzMatrix Create(float[] values) {
+        public static NormalizedToeplitzMatrixSingle Create(float[] values) {
             if (values.Length % 2 != 1)
                 throw new ArgumentException(Resources.NormalizedToeplitzMatrix_InvalidArrayLength, nameof(values));
             var size = (values.Length - 1) / 2 + 1;
@@ -24,7 +24,7 @@ namespace P1X.Toeplitz {
             if (values[size - 1] != 1.0f)
                 throw new ArgumentException(string.Format(Resources.NormalizedToeplitzMatrix_ArrayDataNotNormilized, size), nameof(values));
             
-            return new NormalizedToeplitzMatrix(size, values);
+            return new NormalizedToeplitzMatrixSingle(size, values);
         }
 
         public int Size { get; }
@@ -52,12 +52,6 @@ namespace P1X.Toeplitz {
             _values[index + (Size - 1)] = value;
         }
 
-        public float[] GetValues() {
-            var copy = new float[_values.Length];
-            _values.CopyTo(copy, 0);
-            return copy;
-        }
-        
         public bool IsInitialized => _values != null;
     }
 }

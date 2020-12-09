@@ -9,11 +9,11 @@ namespace P1X.Toeplitz.BenchmarkSuite {
         [Params(8, 32, 128, 512)]
         public int N;
         
-        private NormalizedToeplitzMatrix _matrix;
+        private NormalizedToeplitzMatrixSingle _matrix;
 
         private float[] _rightValues;
         private float[] _resultValues;
-        private Vector _rightVector;
+        private VectorSingle _rightVector;
         private DenseMatrix _mnMatrix;
         private DenseVector _mnRightVector;
         private DenseVector _mnResult;
@@ -22,7 +22,7 @@ namespace P1X.Toeplitz.BenchmarkSuite {
         public void Setup() {
             static float R(float t) => MathF.Abs(MathF.Cos(10 * t) * MathF.Exp(-t * t));
 
-            _matrix = NormalizedToeplitzMatrix.Create(N);
+            _matrix = NormalizedToeplitzMatrixSingle.Create(N);
             for (var i = 1; i < N; i++)
                 _matrix[i] = _matrix[-i] = R(i);
 
@@ -35,7 +35,7 @@ namespace P1X.Toeplitz.BenchmarkSuite {
             for (var i = 0; i < N; i++) 
                 _rightValues[i] = R(0.5f - N / 2f + i);
 
-            _rightVector = new Vector(_rightValues);
+            _rightVector = new VectorSingle(_rightValues);
             _mnRightVector = new DenseVector(_rightValues);
             
             _resultValues = new float[N];
@@ -45,7 +45,7 @@ namespace P1X.Toeplitz.BenchmarkSuite {
         
         [Benchmark]
         public float[] MainSolver() {
-            new Solver(N).Solve(_matrix, _rightVector, _resultValues);
+            new SingleSolver(N).Solve(_matrix, _rightVector, _resultValues);
             return _resultValues;
         }
         
