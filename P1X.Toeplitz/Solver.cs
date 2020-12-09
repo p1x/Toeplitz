@@ -29,7 +29,7 @@ namespace P1X.Toeplitz {
         /// </summary>
         /// <param name="expectedMatrixSize">Expected matrix size</param>
         public Solver(int expectedMatrixSize) {
-            var vCount = System.Numerics.Vector<float>.Count;
+            var vCount = System.Numerics.Vector<T>.Count;
             _vectorsLength = vCount * (int) Math.Ceiling((expectedMatrixSize - 1) / (float) vCount);
             _e = new T[_vectorsLength + vCount]; 
             _g = new T[_vectorsLength];
@@ -71,7 +71,7 @@ namespace P1X.Toeplitz {
         public void Solve(TMatrix matrix, TVector rightVector, T[] resultVector) {
             if (matrix.Equals(default(TMatrix)))
                 throw new ArgumentNullException(nameof(matrix));
-            if (rightVector.Equals(default(VectorSingle)))
+            if (rightVector.Equals(default(TVector)))
                 throw new ArgumentNullException(nameof(rightVector));
             if (resultVector == null)
                 throw new ArgumentNullException(nameof(resultVector));
@@ -115,7 +115,7 @@ namespace P1X.Toeplitz {
         public void Iterate(TMatrix matrix, TVector rightVector, T[] resultVector) {
             if (matrix.Equals(default(TMatrix)))
                 throw new ArgumentNullException(nameof(matrix));
-            if (rightVector.Equals(default(VectorSingle)))
+            if (rightVector.Equals(default(TVector)))
                 throw new ArgumentNullException(nameof(rightVector));
             if (resultVector == null)
                 throw new ArgumentNullException(nameof(resultVector));
@@ -126,7 +126,7 @@ namespace P1X.Toeplitz {
             if (rightVector.Size < minSize)
                 throw new ArgumentException(Resources.Solver_InsufficientVectorSize, nameof(rightVector));
 
-            var vSize = System.Numerics.Vector<float>.Count;
+            var vSize = System.Numerics.Vector<T>.Count;
             var minResultSize = vSize * Math.Max(1, (int) Math.Ceiling(minSize / (float) vSize));
             if (resultVector.Length < minResultSize)
                 throw new ArgumentException(Resources.Solver_InsufficientVectorSize, nameof(resultVector));
@@ -230,7 +230,7 @@ namespace P1X.Toeplitz {
                 var gvNew = gv + gammaOverLambda * ev;
                 var evNew = ev + etaOverLambda * gv;
 
-                ev = new SN.Vector<T>(_e, j + SN.Vector<float>.Count);
+                ev = new SN.Vector<T>(_e, j + SN.Vector<T>.Count);
 
                 gvNew.CopyTo(_g, j);
                 evNew.CopyTo(_e, j + 1);

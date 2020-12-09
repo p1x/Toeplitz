@@ -3,24 +3,6 @@ using System.Collections.Generic;
 using Xunit;
 
 namespace P1X.Toeplitz.Tests {
-    public class SingleSolverTests : SolverTestsBase<NormalizedToeplitzMatrixSingle, VectorSingle, float> {
-        protected override ISolver<NormalizedToeplitzMatrixSingle, VectorSingle, float> GetSolver() => new SingleSolver<NormalizedToeplitzMatrixSingle, VectorSingle>(2);
-
-        protected override NormalizedToeplitzMatrixSingle NewMatrix(int size) => NormalizedToeplitzMatrixSingle.Create(size);
-
-        protected override NormalizedToeplitzMatrixSingle NewMatrix(float[] data) => NormalizedToeplitzMatrixSingle.Create(data);
-
-        protected override VectorSingle NewVector(float[] data) => new VectorSingle(data);
-
-        protected override IEqualityComparer<float> GetRoundingComparer() => new RoundingSingleEqualityComparer(5);
-
-        [Fact]
-        public void SingleSolver_CanCreate() {
-            var solver = new SingleSolver<NormalizedToeplitzMatrixSingle, VectorSingle>(2);
-            Assert.NotNull(solver);
-        }
-    }
-
     public abstract class SolverTestsBase<TMatrix, TVector, T> 
         where TMatrix : struct, IReadOnlyToeplitzMatrix<T> 
         where TVector : struct, IReadOnlyVector<T> 
@@ -31,6 +13,8 @@ namespace P1X.Toeplitz.Tests {
         protected abstract TMatrix NewMatrix(T[] data);
         protected abstract TVector NewVector(T[] data);
         protected abstract IEqualityComparer<T> GetRoundingComparer();
+
+        protected abstract T[] ConvertArray(float[] data);
         
         [Fact]
         public void SolveDefaultParameters_ThrowException() {
@@ -48,22 +32,22 @@ namespace P1X.Toeplitz.Tests {
 
         [Theory]
         [MemberData(nameof(GetValidTestData))]
-        public void Solve_ValidResult(T[] matrixValues, T[] rightVector, T[] expectedResult) {
-            var matrix = NewMatrix(matrixValues);
+        public void Solve_ValidResult(float[] matrixValues, float[] rightVector, float[] expectedResult) {
+            var matrix = NewMatrix(ConvertArray(matrixValues));
             var resultVector = new T[matrix.Size];
             
-            GetSolver().Solve(matrix, NewVector(rightVector), resultVector);
+            GetSolver().Solve(matrix, NewVector(ConvertArray(rightVector)), resultVector);
             
-            Assert.Equal(expectedResult, resultVector, GetRoundingComparer());
+            Assert.Equal(ConvertArray(expectedResult), resultVector, GetRoundingComparer());
         }
         
         [Theory]
         [MemberData(nameof(GetValidTestDataBySize), new [] {8, 16, 32})]
-        public void SolveLarge_ValidResult(T[] matrixValues, T[] rightVector) {
-            var matrix = NewMatrix(matrixValues);
+        public void SolveLarge_ValidResult(float[] matrixValues, float[] rightVector) {
+            var matrix = NewMatrix(ConvertArray(matrixValues));
             var resultVector = new T[matrix.Size];
             
-            GetSolver().Solve(matrix, NewVector(rightVector), resultVector);
+            GetSolver().Solve(matrix, NewVector(ConvertArray(rightVector)), resultVector);
             
             var expectedResult = new T[rightVector.Length];
             Assert.NotEqual(expectedResult, resultVector, GetRoundingComparer());
@@ -71,11 +55,11 @@ namespace P1X.Toeplitz.Tests {
 
         [Theory]
         [MemberData(nameof(GetValidTestData))]
-        public void Iterate_ValidResult(T[] matrixValues, T[] rightValues, T[] expectedResult) {
+        public void Iterate_ValidResult(float[] matrixValues, float[] rightValues, float[] expectedResult) {
             var solver = GetSolver();
-            var matrix = NewMatrix(matrixValues);
-            var resultVector = new T[solver.ResultVectorMultiplier * 2];
-            var rightVector = NewVector(rightValues);
+            var matrix = NewMatrix(ConvertArray(matrixValues));
+            var resultVector = new T[solver.ResultVectorMultiplier * 4];
+            var rightVector = NewVector(ConvertArray(rightValues));
 
             for (var i = 0; i < matrix.Size - 1; i++) 
                 solver.Iterate(matrix, rightVector, resultVector);
@@ -83,7 +67,7 @@ namespace P1X.Toeplitz.Tests {
             var result = new T[matrix.Size];
             Array.Copy(resultVector, result, matrix.Size);
             
-            Assert.Equal(expectedResult, result, GetRoundingComparer());
+            Assert.Equal(ConvertArray(expectedResult), result, GetRoundingComparer());
         }
         
         [Fact]
