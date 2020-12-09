@@ -20,15 +20,22 @@ namespace P1X.Toeplitz {
 
         private int _vectorsLength;
         
-        public Solver(int maxMatrixSize) {
+        /// <summary>
+        /// Create new solver with cache and intermediate data storage capacity calculated for given matrix size.
+        /// </summary>
+        /// <param name="expectedMatrixSize">Expected matrix size</param>
+        public Solver(int expectedMatrixSize) {
             var vCount = System.Numerics.Vector<float>.Count;
-            _vectorsLength = vCount * (int) Math.Ceiling((maxMatrixSize - 1) / (float) vCount);
+            _vectorsLength = vCount * (int) Math.Ceiling((expectedMatrixSize - 1) / (float) vCount);
             _e = new float[_vectorsLength + vCount]; 
             _g = new float[_vectorsLength];
             _columnCache = new float[_vectorsLength + vCount];
             _rowCache = new float[_vectorsLength];
         }
 
+        /// <summary>
+        /// Multiplier for result vector used in <see cref="Iterate"/>
+        /// </summary>
         public static int ResultVectorMultiplier => SN.Vector<float>.Count;
         
         private void ResizeArrays() {
@@ -46,6 +53,17 @@ namespace P1X.Toeplitz {
             array = newArray;
         }
 
+        /// <summary>
+        /// Solve equation in form of A*x = b where A is coefficient Toeplitz matrix and x and b is vectors. 
+        /// </summary>
+        /// <param name="matrix">Coefficients matrix</param>
+        /// <param name="rightVector">Right-hand size vector</param>
+        /// <param name="resultVector">Result vector</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="matrix"/> is not initialized -or- 
+        /// <paramref name="rightVector"/> or <paramref name="resultVector"/> size is not equal to <paramref name="matrix"/> size.
+        /// </exception>
+        /// <exception cref="ArgumentNullException"><paramref name="rightVector"/> is <c>default</c> or <paramref name="resultVector"/> is <c>null</c>.</exception>
         public void Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, float[] resultVector) {
             if (!matrix.IsInitialized)
                 throw new ArgumentException(Resources.Solver_MatrixNotInitialized, nameof(matrix));
@@ -76,6 +94,20 @@ namespace P1X.Toeplitz {
                 Array.Copy(s2, s, s.Length);
         }
 
+        /// <summary>
+        /// Calculate one iteration. It's useful for some algorithms.
+        /// First iterations, which is trivial, is skipped.
+        /// Result vector size should be multiple of <see cref="ResultVectorMultiplier"/>.  
+        /// </summary>
+        /// <param name="matrix">Coefficients matrix</param>
+        /// <param name="rightVector">Right-hand side vector</param>
+        /// <param name="resultVector">Result vector</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="matrix"/> is not initialized or its size is insufficient for current iteration -or- 
+        /// <paramref name="rightVector"/> size is insufficient for current iteration -or-
+        /// <paramref name="resultVector"/> size is insufficient for current iteration.
+        /// </exception>
+        /// <exception cref="ArgumentNullException"><paramref name="rightVector"/> is <c>default</c> or <paramref name="resultVector"/> is <c>null</c>.</exception>
         public void Iterate(NormalizedToeplitzMatrix matrix, Vector rightVector, float[] resultVector) {
             if (!matrix.IsInitialized)
                 throw new ArgumentException(Resources.Solver_MatrixNotInitialized, nameof(matrix));
