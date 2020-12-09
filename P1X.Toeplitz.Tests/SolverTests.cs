@@ -151,7 +151,7 @@ namespace P1X.Toeplitz.Tests {
                 for (var i = 0; i < n; i++)
                     rightValues[i] = R(0.5f - n / 2f + i);
 
-                yield return new object[] { matrix.GetUnchecked().GetValues(), rightValues };
+                yield return new object[] { matrix.GetValues(), rightValues };
             }
         }
     }

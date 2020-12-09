@@ -8,15 +8,15 @@ namespace P1X.Toeplitz {
     public class NaiveSolver : ISolver<NormalizedToeplitzMatrix, Vector> {
         public static void Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, float[] resultVector) {
             if (!matrix.IsInitialized)
-                throw new ArgumentException("The matrix should be initialized (non-default).", nameof(matrix));
+                throw new ArgumentException(Resources.Solver_MatrixNotInitialized, nameof(matrix));
             if (rightVector.Equals(default(Vector)))
                 throw new ArgumentNullException(nameof(rightVector));
             if (resultVector == null)
                 throw new ArgumentNullException(nameof(resultVector));
             if (matrix.Size != rightVector.Size)
-                throw new ArgumentException("Vectors and the matrix should be the same size.", nameof(rightVector));
+                throw new ArgumentException(Resources.Solver_InvalidVectorSize, nameof(rightVector));
             if (matrix.Size != resultVector.Length)
-                throw new ArgumentException("Vectors and the matrix should be the same size.", nameof(resultVector));
+                throw new ArgumentException(Resources.Solver_InvalidVectorSize, nameof(resultVector));
             
             SolveCore(matrix, rightVector, resultVector);
         }

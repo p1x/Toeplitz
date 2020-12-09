@@ -13,7 +13,7 @@ namespace P1X.Toeplitz {
         private float[] _e; // reversed vector
         private float[] _g;
         private float _lambda = 1f;
-        private int _index = 0;
+        private int _index;
         
         private float[] _columnCache;
         private float[] _rowCache;
@@ -48,21 +48,21 @@ namespace P1X.Toeplitz {
 
         public void Solve(NormalizedToeplitzMatrix matrix, Vector rightVector, float[] resultVector) {
             if (!matrix.IsInitialized)
-                throw new ArgumentException("The matrix should be initialized (non-default).", nameof(matrix));
+                throw new ArgumentException(Resources.Solver_MatrixNotInitialized, nameof(matrix));
             if (rightVector.Equals(default(Vector)))
                 throw new ArgumentNullException(nameof(rightVector));
             if (resultVector == null)
                 throw new ArgumentNullException(nameof(resultVector));
             if (matrix.Size != rightVector.Size)
-                throw new ArgumentException("Vectors and the matrix should be the same size.", nameof(rightVector));
+                throw new ArgumentException(Resources.Solver_InvalidVectorSize, nameof(rightVector));
             if (matrix.Size != resultVector.Length)
-                throw new ArgumentException("Vectors and the matrix should be the same size.", nameof(resultVector));
+                throw new ArgumentException(Resources.Solver_InvalidVectorSize, nameof(resultVector));
             
 
-            SolveUnchecked(matrix.GetUnchecked(), rightVector, resultVector);
+            SolveUnchecked(matrix, rightVector, resultVector);
         }
 
-        private void SolveUnchecked(NormalizedToeplitzMatrixUnchecked matrix, Vector d, float[] s) {
+        private void SolveUnchecked(NormalizedToeplitzMatrix matrix, Vector d, float[] s) {
             var vCount = System.Numerics.Vector<float>.Count;
             
             var size = vCount * (int) Math.Ceiling(s.Length / (float) vCount);
@@ -78,7 +78,7 @@ namespace P1X.Toeplitz {
 
         public void Iterate(NormalizedToeplitzMatrix matrix, Vector rightVector, float[] resultVector) {
             if (!matrix.IsInitialized)
-                throw new ArgumentException("The matrix should be initialized (non-default).", nameof(matrix));
+                throw new ArgumentException(Resources.Solver_MatrixNotInitialized, nameof(matrix));
             if (rightVector.Equals(default(Vector)))
                 throw new ArgumentNullException(nameof(rightVector));
             if (resultVector == null)
@@ -86,19 +86,19 @@ namespace P1X.Toeplitz {
 
             var minSize = _index + 2;
             if (matrix.Size < minSize)
-                throw new ArgumentException("Matrix size is insufficient for current iteration.", nameof(matrix));
+                throw new ArgumentException(Resources.Solver_InsufficientMatrixSize, nameof(matrix));
             if (rightVector.Size < minSize)
-                throw new ArgumentException("Vector size is insufficient for current iteration.", nameof(rightVector));
+                throw new ArgumentException(Resources.Solver_InsufficientVectorSize, nameof(rightVector));
 
             var vSize = System.Numerics.Vector<float>.Count;
             var minResultSize = vSize * Math.Max(1, (int) Math.Ceiling(minSize / (float) vSize));
             if (resultVector.Length < minResultSize)
-                throw new ArgumentException("Vector size is insufficient for current iteration.", nameof(resultVector));
+                throw new ArgumentException(Resources.Solver_InsufficientVectorSize, nameof(resultVector));
             
-            IterateUnchecked(matrix.GetUnchecked(), rightVector, resultVector);
+            IterateUnchecked(matrix, rightVector, resultVector);
         }
 
-        private void IterateUnchecked(NormalizedToeplitzMatrixUnchecked matrix, Vector rightVector, float[] resultVector) {
+        private void IterateUnchecked(NormalizedToeplitzMatrix matrix, Vector rightVector, float[] resultVector) {
             if (_index >= _vectorsLength)
                 ResizeArrays();
 
